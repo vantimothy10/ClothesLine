@@ -7,14 +7,14 @@
 
 import Foundation
 
-protocol OutfitServiceProtocol {
+protocol OutfitStoreServiceProtocol {
     var outfits: [PhotoOutfit] { get set }
     
     func addOutfit(_ outfit: PhotoOutfit) -> Void
     
 }
 
-class OutfitService: OutfitServiceProtocol {
+class OutfitStoreService: OutfitStoreServiceProtocol {
     var outfits: [PhotoOutfit] = []
     
     func addOutfit(_ outfit: PhotoOutfit) {

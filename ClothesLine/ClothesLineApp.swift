@@ -13,6 +13,7 @@ struct ClothesLineApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
+            PhotoOutfit.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -25,7 +26,7 @@ struct ClothesLineApp: App {
 
     var body: some Scene {
         WindowGroup {
-            PhotoScrollView()
+            PhotoScrollView(vm: PhotoScrollViewModel(modelContext: sharedModelContainer.mainContext))
         }
         .modelContainer(sharedModelContainer)
     }

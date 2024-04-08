@@ -21,10 +21,13 @@ struct PhotoView: View {
             ProgressView()
                 .controlSize(.large)
                 .frame(width: 50, height: 50)
-        case .success(let image):
-            image
-                .resizable()
-                .scaledToFill()
+        case .success(let imageData):
+            if let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+            }
+                
         case .failure(let error):
             Image(systemName: "exclamationmark.triangle")
                 .resizable()
@@ -46,7 +49,7 @@ struct PhotoView: View {
             .background(.gray)
             .clipShape(RoundedRectangle(cornerRadius: /*@START_MENU_TOKEN@*/25.0/*@END_MENU_TOKEN@*/, style: /*@START_MENU_TOKEN@*/.continuous/*@END_MENU_TOKEN@*/))
         
-        PhotoView(imageState: .success(Image(systemName: "photo.artframe")))
+        PhotoView(imageState: .success((UIImage(systemName: "photo.artframe")?.pngData()!)!))
             .frame(width: 250, height: 250)
             .background(.gray)
             .clipShape(RoundedRectangle(cornerRadius: /*@START_MENU_TOKEN@*/25.0/*@END_MENU_TOKEN@*/, style: /*@START_MENU_TOKEN@*/.continuous/*@END_MENU_TOKEN@*/))

@@ -6,14 +6,17 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct PhotoScrollView: View {
-    @ObservedObject var vm = PhotoScrollViewModel()
+    @Environment(\.modelContext) private var modelContext
+    @ObservedObject var vm: PhotoScrollViewModel
+    @Query(sort: \PhotoOutfit.date, order: .reverse) var outfits: [PhotoOutfit]
     
     var body: some View {
         NavigationStack {
             VStack {
-                ScrollView {
+                ScrollView() {
                     LazyVStack() {
                         Button(action: {
                             print("test")
@@ -28,53 +31,60 @@ struct PhotoScrollView: View {
                                         .font(.system(size: 20))
                                 }
                         })
-
-
+                        
+                        
                         Rectangle()
                             .frame(width: 5, height: 30)
-                        ForEach(vm.outfits) { outfit in
+                        ForEach(outfits) { outfit in
                             VStack {
                                 Text("\(vm.formatDate(date: outfit.date))")
-                                outfit.image
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 300, height: 400)
-                                    .background(Gradient(colors: [.gray, .blue, .black]))
-                                    .clipShape(RoundedRectangle(cornerRadius: /*@START_MENU_TOKEN@*/25.0/*@END_MENU_TOKEN@*/, style: /*@START_MENU_TOKEN@*/.continuous/*@END_MENU_TOKEN@*/))
+                                PhotoTile(outfit: outfit)
+                                    .contentShape(RoundedRectangle(cornerRadius: 25.0))
+                                    .onLongPressGesture {
+                                        vm.selectedOutfit = outfit
+                                        vm.showDelete.toggle()
+                                    }
+                                    .confirmationDialog("Delete this outfit?", isPresented: $vm.showDelete) {
+                                        Button("Delete", role: .destructive) {
+                                            vm.deleteOutfit(outfit: outfit)
+                                        }
+                                        Button("Cancel", role: .cancel) { }
+                                        
+                                    }
+                                
                                 Rectangle()
                                     .frame(width: 5, height: 30)
                             }
                             
                         }
+                        
                     }
                 }
             }
             .navigationTitle("Your Clothesline")
             .sheet(isPresented: $vm.showSheet, content: {
-                PhotoSelectionView()
+                PhotoSelectionView(vm: PhotoSelectionViewModel(modelContext: modelContext))
             })
         }
+
     }
 }
 
+
+@MainActor
 class PhotoScrollViewModel: ObservableObject {
-    @Published var outfits: [PhotoOutfit] = [
-        PhotoOutfit(image: Image(.sampleTimmyFit1), date: Date.now),
-        PhotoOutfit(image: Image(.sampleTimmyFit2), date: Date.now.addingTimeInterval(86400)),
-        PhotoOutfit(image: Image(.sampleTimmyFit3), date: Date.now.addingTimeInterval(86400 * 3)),
-        PhotoOutfit(image: Image(.sampleTimmyFit1), date: Date.now.addingTimeInterval(86400 * 6)),
-        PhotoOutfit(image: Image(.sampleTimmyFit2), date: Date.now.addingTimeInterval(86400 * 8)),
-        PhotoOutfit(image: Image(.sampleTimmyFit3), date: Date.now.addingTimeInterval(86400 * 10)),
-    
-    ]
-    
     @Published var showSheet = false
+    @Published var showDelete = false
+    @Published var selectedOutfit: PhotoOutfit? = nil
+    
+    private let modelContext: ModelContext
     
     private let dateFormatter = DateFormatter()
     
-    init() {
+    init(modelContext: ModelContext) {
         dateFormatter.dateStyle = .medium
         dateFormatter.timeStyle = .none
+        self.modelContext = modelContext
     }
     
     func formatDate(date: Date) -> String {
@@ -82,9 +92,32 @@ class PhotoScrollViewModel: ObservableObject {
         
     }
     
-
+    func deleteOutfit(outfit: PhotoOutfit) {
+        DispatchQueue.main.async {
+            self.modelContext.delete(outfit)
+            try? self.modelContext.save()
+        }
+    }
+    
+    
 }
 
 #Preview {
-    PhotoScrollView()
+    let sampleData = [
+        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.1")?.pngData())!, date: Date.now, liked: true),
+        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.2")?.pngData())!, date: Date.now.addingTimeInterval(86400), disliked: true),
+        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.3")?.pngData())!, date: Date.now.addingTimeInterval(86400 * 3), disliked: true),
+        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.1")?.pngData())!, date: Date.now.addingTimeInterval(86400 * 6), liked: true),
+        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.2")?.pngData())!, date: Date.now.addingTimeInterval(86400 * 8), disliked: true),
+        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.3")?.pngData())!, date: Date.now.addingTimeInterval(86400 * 10), liked: true)
+    ]
+    
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: PhotoOutfit.self, configurations: config)
+    
+    for data in sampleData {
+        container.mainContext.insert(data)
+    }
+    
+    return PhotoScrollView(vm: PhotoScrollViewModel(modelContext: container.mainContext)).modelContainer(container)
 }

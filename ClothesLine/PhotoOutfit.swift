@@ -6,19 +6,22 @@
 //
 
 import Foundation
-import SwiftUI
+import SwiftData
 
+@Model
 class PhotoOutfit: Identifiable {
     let id = UUID()
-    var image: Image
+    @Attribute(.externalStorage) var imageData: Data
     var date: Date
-    var approved: Bool?
-    var notes: String?
+    var liked: Bool
+    var disliked: Bool
+    var notes: String
     
-    init(image: Image, date: Date, approved: Bool? = nil, notes: String? = nil) {
-        self.image = image
+    init(imageData: Data, date: Date, liked: Bool = false, disliked: Bool = false, notes: String = "") {
+        self.imageData = imageData
         self.date = date
-        self.approved = approved
+        self.liked = liked
+        self.disliked = disliked
         self.notes = notes
     }
     
