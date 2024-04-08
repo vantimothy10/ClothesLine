@@ -19,7 +19,6 @@ struct PhotoScrollView: View {
                 ScrollView() {
                     LazyVStack() {
                         Button(action: {
-                            print("test")
                             vm.showSheet.toggle()
                         }, label: {
                             RoundedRectangle(cornerRadius: 25.0)
@@ -40,17 +39,7 @@ struct PhotoScrollView: View {
                                 Text("\(vm.formatDate(date: outfit.date))")
                                 PhotoTile(outfit: outfit)
                                     .contentShape(RoundedRectangle(cornerRadius: 25.0))
-                                    .onLongPressGesture {
-                                        vm.selectedOutfit = outfit
-                                        vm.showDelete.toggle()
-                                    }
-                                    .confirmationDialog("Delete this outfit?", isPresented: $vm.showDelete) {
-                                        Button("Delete", role: .destructive) {
-                                            vm.deleteOutfit(outfit: outfit)
-                                        }
-                                        Button("Cancel", role: .cancel) { }
-                                        
-                                    }
+                                
                                 
                                 Rectangle()
                                     .frame(width: 5, height: 30)
@@ -66,7 +55,7 @@ struct PhotoScrollView: View {
                 PhotoSelectionView(vm: PhotoSelectionViewModel(modelContext: modelContext))
             })
         }
-
+        
     }
 }
 
@@ -92,7 +81,9 @@ class PhotoScrollViewModel: ObservableObject {
         
     }
     
-    func deleteOutfit(outfit: PhotoOutfit) {
+    func deleteSelectedOutfit() {
+        guard let outfit = selectedOutfit else { return }
+        
         DispatchQueue.main.async {
             self.modelContext.delete(outfit)
             try? self.modelContext.save()

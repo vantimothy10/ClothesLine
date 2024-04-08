@@ -27,7 +27,7 @@ struct PhotoView: View {
                     .resizable()
                     .scaledToFill()
             }
-                
+            
         case .failure(let error):
             Image(systemName: "exclamationmark.triangle")
                 .resizable()

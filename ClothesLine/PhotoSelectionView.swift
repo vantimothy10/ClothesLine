@@ -11,13 +11,13 @@ import SwiftData
 
 struct PhotoSelectionView: View {
     @ObservedObject var vm: PhotoSelectionViewModel
+    @FocusState var isFocused: Bool
     
     var body: some View {
         
         ScrollView {
             VStack(alignment: .center) {
-
-               
+                
                 PhotoView(imageState: vm.imageState)
                     .frame(width: 300, height: 400)
                     .background(Gradient(colors: [.gray, .blue, .black]))
@@ -52,7 +52,7 @@ struct PhotoSelectionView: View {
                                             .resizable()
                                             .scaledToFit()
                                             .foregroundStyle(.ultraThickMaterial)
-                                        .frame(width: 50, height: 50)
+                                            .frame(width: 50, height: 50)
                                     }
                                 }
                                 .offset(
@@ -71,7 +71,7 @@ struct PhotoSelectionView: View {
                                             .resizable()
                                             .scaledToFit()
                                             .foregroundStyle(.ultraThickMaterial)
-                                        .frame(width: 50, height: 50)
+                                            .frame(width: 50, height: 50)
                                     }
                                 }
                                 .offset(
@@ -88,11 +88,15 @@ struct PhotoSelectionView: View {
                 TextField("Notes:", text: $vm.notes)
                     .frame(width: 300, height: 25, alignment: .top)
                     .padding()
+                    .focused($isFocused)
                     .background(
                         RoundedRectangle(cornerRadius: 20)
                             .stroke(.gray, lineWidth: 5)
                     )
                     .contentShape(RoundedRectangle(cornerRadius: 20))
+                    .onTapGesture {
+                        isFocused = true
+                    }
                 
                 HStack(spacing: 75) {
                     Button {
@@ -101,7 +105,7 @@ struct PhotoSelectionView: View {
                         RoundedRectangle(cornerRadius: /*@START_MENU_TOKEN@*/25.0/*@END_MENU_TOKEN@*/)
                             .foregroundColor(vm.disliked ? .gray : .green)
                             .frame(width: /*@START_MENU_TOKEN@*/100/*@END_MENU_TOKEN@*/, height: 100)
-
+                        
                             .overlay {
                                 ZStack {
                                     Image(systemName: "hand.thumbsup.circle")
@@ -116,11 +120,11 @@ struct PhotoSelectionView: View {
                                             .frame(width: 100, height: 100)
                                     }
                                 }
-                               
+                                
                             }
                     }
                     .disabled(vm.disliked)
-
+                    
                     
                     Button {
                         vm.disliked.toggle()
@@ -134,7 +138,7 @@ struct PhotoSelectionView: View {
                                         .resizable()
                                         .scaledToFit()
                                         .foregroundStyle(.ultraThickMaterial)
-                                    .frame(width: 50, height: 50)
+                                        .frame(width: 50, height: 50)
                                     
                                     if vm.disliked {
                                         RoundedRectangle(cornerRadius: /*@START_MENU_TOKEN@*/25.0/*@END_MENU_TOKEN@*/)
@@ -145,12 +149,12 @@ struct PhotoSelectionView: View {
                             }
                     }
                     .disabled(vm.liked)
-
+                    
                 }
                 .frame(width: 300)
                 .padding()
                 
-               
+                
                 if vm.submittable {
                     Button(action: {
                         vm.submit()
@@ -158,7 +162,7 @@ struct PhotoSelectionView: View {
                         Text("Submit")
                     })
                 }
-
+                
                 
                 Spacer()
             }
@@ -183,10 +187,10 @@ class PhotoSelectionViewModel: ObservableObject {
     @Published var imageData: Data? = nil
     
     // MARK: Photo Outfit Variables
-    @Published var date: Date = Date()
+    var date: Date = Date()
     @Published var liked: Bool = false
     @Published var disliked: Bool = false
-    @Published var notes: String = "No notes!"
+    var notes: String = "No notes!"
     
     var submittable: Bool {
         return imageData != nil && (liked || disliked)
@@ -218,6 +222,7 @@ class PhotoSelectionViewModel: ObservableObject {
     }
     
     @MainActor func submit() {
+        UIApplication.shared.endEditing()
         if let imageData = imageData {
             let photoOutfit = PhotoOutfit(imageData: imageData, date: date, liked: liked, disliked: disliked, notes: notes)
             
