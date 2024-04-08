@@ -25,7 +25,7 @@ struct ClothesLineApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            PhotoScrollView()
         }
         .modelContainer(sharedModelContainer)
     }
