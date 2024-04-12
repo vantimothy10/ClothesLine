@@ -10,6 +10,7 @@ import PhotosUI
 import SwiftData
 
 struct PhotoSelectionView: View {
+    @Environment(\.presentationMode) var presentationMode
     @ObservedObject var vm: PhotoSelectionViewModel
     @FocusState var isFocused: Bool
     
@@ -158,6 +159,7 @@ struct PhotoSelectionView: View {
                 if vm.submittable {
                     Button(action: {
                         vm.submit()
+                        presentationMode.wrappedValue.dismiss()
                     }, label: {
                         Text("Submit")
                     })
@@ -196,9 +198,12 @@ class PhotoSelectionViewModel: ObservableObject {
         return imageData != nil && (liked || disliked)
     }
     
+    let currentClothesline: ClothesLine
+    
     private var modelContext: ModelContext
     
-    init( modelContext: ModelContext) {
+    init(currentClothesline: ClothesLine, modelContext: ModelContext) {
+        self.currentClothesline = currentClothesline
         self.modelContext = modelContext
     }
     
@@ -225,8 +230,8 @@ class PhotoSelectionViewModel: ObservableObject {
         UIApplication.shared.endEditing()
         if let imageData = imageData {
             let photoOutfit = PhotoOutfit(imageData: imageData, date: date, liked: liked, disliked: disliked, notes: notes)
-            
-            modelContext.insert(photoOutfit)
+            currentClothesline.outfits.append(photoOutfit)
+            modelContext.insert(currentClothesline)
             try? modelContext.save()
         }
         
@@ -245,21 +250,21 @@ enum ImageState {
 
 
 #Preview {
-    let sampleData = [
-        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.1")?.pngData())!, date: Date.now),
-        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.2")?.pngData())!, date: Date.now.addingTimeInterval(86400)),
-        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.3")?.pngData())!, date: Date.now.addingTimeInterval(86400 * 3)),
-        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.1")?.pngData())!, date: Date.now.addingTimeInterval(86400 * 6)),
-        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.2")?.pngData())!, date: Date.now.addingTimeInterval(86400 * 8)),
-        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.3")?.pngData())!, date: Date.now.addingTimeInterval(86400 * 10))
+    let sampleOutfits = [
+        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.1")?.pngData())!, date: Date.now, liked: true),
+        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.2")?.pngData())!, date: Date.now.addingTimeInterval(86400), disliked: true),
+        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.3")?.pngData())!, date: Date.now.addingTimeInterval(86400 * 3), disliked: true),
+        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.1")?.pngData())!, date: Date.now.addingTimeInterval(86400 * 6), liked: true),
+        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.2")?.pngData())!, date: Date.now.addingTimeInterval(86400 * 8), disliked: true),
+        PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.3")?.pngData())!, date: Date.now.addingTimeInterval(86400 * 10), liked: true)
     ]
+    let sampleClothesLine = ClothesLine(name: "Main Clothesline", desc: "This is your main clothesline", outfits: sampleOutfits)
+
     
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: PhotoOutfit.self, configurations: config)
+    let container = try! ModelContainer(for: ClothesLine.self, configurations: config)
     
-    for data in sampleData {
-        container.mainContext.insert(data)
-    }
+    container.mainContext.insert(sampleClothesLine)
     
-    return PhotoSelectionView(vm: PhotoSelectionViewModel(modelContext: container.mainContext))
+    return PhotoSelectionView(vm: PhotoSelectionViewModel(currentClothesline: sampleClothesLine, modelContext: container.mainContext))
 }

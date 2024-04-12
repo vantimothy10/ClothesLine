@@ -24,6 +24,19 @@ class PhotoOutfit: Identifiable {
         self.disliked = disliked
         self.notes = notes
     }
+}
+
+@Model 
+class ClothesLine: Identifiable {
+    let id = UUID()
+    var name: String
+    var desc: String
+    var outfits: [PhotoOutfit]
     
+    init(name: String, desc: String, outfits: [PhotoOutfit]) {
+        self.name = name
+        self.desc = desc
+        self.outfits = outfits
+    }
     
 }

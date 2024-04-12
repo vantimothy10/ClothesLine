@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct PhotoTile: View {
+struct PhotoTileView: View {
     @Environment(\.modelContext) private var modelContext
     let outfit: PhotoOutfit
     @State private var showDetails = false
@@ -128,8 +128,8 @@ struct PhotoTile: View {
 #Preview {
     ScrollView {
         VStack {
-            PhotoTile(outfit: PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.1")?.pngData())!, date: Date.now, liked: true, notes: "Note 1"))
-            PhotoTile(outfit: PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.1")?.pngData())!, date: Date.now, disliked: true, notes: "Note 2"))
+            PhotoTileView(outfit: PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.1")?.pngData())!, date: Date.now, liked: true, notes: "Note 1"))
+            PhotoTileView(outfit: PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.1")?.pngData())!, date: Date.now, disliked: true, notes: "Note 2"))
         }
     }
 }

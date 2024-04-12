@@ -12,8 +12,8 @@ import SwiftData
 struct ClothesLineApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
             PhotoOutfit.self,
+            ClothesLine.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         
@@ -24,9 +24,30 @@ struct ClothesLineApp: App {
         }
     }()
     
+    var clothesLine: ClothesLine
+    
+    init() {
+        guard let existingClothesLines = try? sharedModelContainer.mainContext.fetch(FetchDescriptor<ClothesLine>()) else {
+            var mainClothesLine = ClothesLine(name: "Main Clothesline", desc: "Your main clothesline", outfits: [])
+            clothesLine = mainClothesLine
+            return
+        }
+        print("Found \(existingClothesLines.count) existing ClothesLines")
+        
+        if existingClothesLines.isEmpty {
+            var mainClothesLine = ClothesLine(name: "Main Clothesline", desc: "Your main clothesline", outfits: [])
+            sharedModelContainer.mainContext.insert(mainClothesLine)
+            try? sharedModelContainer.mainContext.save()
+            clothesLine = mainClothesLine
+        } else {
+            clothesLine = existingClothesLines.first!
+        }
+    }
+    
+    
     var body: some Scene {
         WindowGroup {
-            PhotoScrollView(vm: PhotoScrollViewModel(modelContext: sharedModelContainer.mainContext))
+            ClothesLinePickerView()
         }
         .modelContainer(sharedModelContainer)
     }
