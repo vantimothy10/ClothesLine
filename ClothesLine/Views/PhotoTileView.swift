@@ -12,7 +12,7 @@ struct PhotoTileView: View {
     let outfit: PhotoOutfit
     @State private var showDetails = false
     @GestureState private var isLongPressed = false
-    @State private var showDialog = false
+    @Binding var longTapped: Bool
     
     var body: some View {
         if !showDetails {
@@ -23,30 +23,23 @@ struct PhotoTileView: View {
                     .frame(width: 300, height: 400)
                     .background(Gradient(colors: [.gray, .blue, .black]))
                     .clipShape(RoundedRectangle(cornerRadius: /*@START_MENU_TOKEN@*/25.0/*@END_MENU_TOKEN@*/, style: /*@START_MENU_TOKEN@*/.continuous/*@END_MENU_TOKEN@*/))
-                    .opacity(isLongPressed ? 0.5 : 1)
+                    .opacity(isLongPressed ? 0.1 : 1)
+                    .scaleEffect(isLongPressed ? 0.8 : 1)
                     .onTapGesture {
                         withAnimation {
                             showDetails.toggle()
                         }
                     }
                     .gesture(
-                        LongPressGesture(minimumDuration: 2)
+                        LongPressGesture(minimumDuration: 1)
                             .updating($isLongPressed, body: { value, state, transaction in
                                 state = value
-                                transaction.animation = Animation.easeIn(duration: 2)
+                                transaction.animation = Animation.easeOut(duration: 0.5)
                             })
                             .onEnded({ _ in
-                                showDialog = true
+                                longTapped = true
                             })
-                        
                     )
-                    .confirmationDialog("Delete this outfit?", isPresented: $showDialog) {
-                        Button("Delete", role: .destructive) {
-                            deleteOutfit()
-                        }
-                        Button("Cancel", role: .cancel) { }
-                        
-                    }
                     .overlay(alignment: .bottomTrailing) {
                         if outfit.disliked {
                             RoundedRectangle(cornerRadius: /*@START_MENU_TOKEN@*/25.0/*@END_MENU_TOKEN@*/)
@@ -106,7 +99,7 @@ struct PhotoTileView: View {
                 VStack {
                     Text("Notes:")
                     
-                    Text("\(outfit.notes ?? "")")
+                    Text("\(outfit.notes )")
                 }
                 
                 
@@ -115,21 +108,15 @@ struct PhotoTileView: View {
         }
         
     }
-    
-    func deleteOutfit() {
-        
-        DispatchQueue.main.async {
-            self.modelContext.delete(outfit)
-            try? self.modelContext.save()
-        }
-    }
 }
 
 #Preview {
-    ScrollView {
+    @State var mockBool = false
+    
+    return ScrollView {
         VStack {
-            PhotoTileView(outfit: PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.1")?.pngData())!, date: Date.now, liked: true, notes: "Note 1"))
-            PhotoTileView(outfit: PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.1")?.pngData())!, date: Date.now, disliked: true, notes: "Note 2"))
+            PhotoTileView(outfit: PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.1")?.pngData())!, date: Date.now, liked: true, notes: "Note 1"), longTapped: $mockBool)
+            PhotoTileView(outfit: PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.1")?.pngData())!, date: Date.now, disliked: true, notes: "Note 2"), longTapped: $mockBool)
         }
     }
 }

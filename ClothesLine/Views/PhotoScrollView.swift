@@ -58,9 +58,15 @@ struct PhotoScrollView: View {
                             ForEach(Array(vm.clothesLine.outfits.enumerated()), id: \.offset) { offset, outfit in
                                 VStack {
                                     Text("\(vm.formatDate(date: outfit.date))")
-                                    PhotoTileView(outfit: outfit)
+                                    PhotoTileView(outfit: outfit, longTapped: $vm.showDialog)
                                         .contentShape(RoundedRectangle(cornerRadius: 25.0))
-                                    
+                                        .confirmationDialog("Delete this outfit?", isPresented: $vm.showDialog) {
+                                            Button("Delete", role: .destructive) {
+                                                vm.deleteOutfit(outfit)
+                                            }
+                                            Button("Cancel", role: .cancel) { }
+                                        }
+
                                 }
                                 .scrollTransition { content, phase in
                                     content
@@ -112,6 +118,8 @@ class PhotoScrollViewModel: ObservableObject {
     @Published var selectedOutfit: PhotoOutfit? = nil
     @Published var scrollPosition: Int? = nil
     @Published var clothesLine: ClothesLine
+    @Published var isLongPressed = false
+    @Published var showDialog = false
     var searchString: String = ""
     
     private let modelContext: ModelContext
@@ -165,6 +173,19 @@ class PhotoScrollViewModel: ObservableObject {
     func jumpToTop() {
         withAnimation {
             scrollPosition = 0
+        }
+    }
+    
+    func deleteOutfit(_ outfit: PhotoOutfit) {
+        let model = self.clothesLine.persistentBackingData
+        let filtered = self.clothesLine.outfits.filter({ $0.id != outfit.id })
+        
+        DispatchQueue.main.async {
+            // Remove deleted outfit from ClothesLine object
+            model.setValue(forKey: \.outfits, to: filtered)
+            self.modelContext.delete(outfit)
+            try? self.modelContext.save()
+            
         }
     }
     

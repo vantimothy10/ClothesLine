@@ -14,6 +14,7 @@ struct PhotoSelectionView: View {
     @ObservedObject var vm: PhotoSelectionViewModel
     @FocusState var isFocused: Bool
     
+    
     var body: some View {
         
         ScrollView {
@@ -168,6 +169,9 @@ struct PhotoSelectionView: View {
                 
                 Spacer()
             }
+            .fullScreenCover(isPresented: $vm.showCamera) {
+                accessCameraView(selectedImage: $vm.selectedImage)
+            }
             .padding()
         }
     }
@@ -187,6 +191,9 @@ class PhotoSelectionViewModel: ObservableObject {
     }
     @Published var imageState: ImageState = .empty
     @Published var imageData: Data? = nil
+    
+    @Published var showCamera = false
+    @Published var selectedImage: UIImage?
     
     // MARK: Photo Outfit Variables
     var date: Date = Date()
@@ -235,6 +242,11 @@ class PhotoSelectionViewModel: ObservableObject {
             try? modelContext.save()
         }
         
+        let fetch = FetchDescriptor<PhotoOutfit>()
+        let result = try? modelContext.fetch(fetch)
+        
+        result.map({ print(String(describing: $0)) })
+        
         
     }
     
@@ -245,6 +257,43 @@ enum ImageState {
     case loading(Progress)
     case success(Data)
     case failure(Error)
+}
+
+struct accessCameraView: UIViewControllerRepresentable {
+    
+    @Binding var selectedImage: UIImage?
+    @Environment(\.presentationMode) var isPresented
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let imagePicker = UIImagePickerController()
+        imagePicker.sourceType = .camera
+        imagePicker.allowsEditing = true
+        imagePicker.delegate = context.coordinator
+        return imagePicker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {
+        
+    }
+
+    func makeCoordinator() -> Coordinator {
+        return Coordinator(picker: self)
+    }
+}
+
+// Coordinator will help to preview the selected image in the View.
+class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+    var picker: accessCameraView
+    
+    init(picker: accessCameraView) {
+        self.picker = picker
+    }
+    
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        guard let selectedImage = info[.originalImage] as? UIImage else { return }
+        self.picker.selectedImage = selectedImage
+        self.picker.isPresented.wrappedValue.dismiss()
+    }
 }
 
 
