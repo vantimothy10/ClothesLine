@@ -22,25 +22,87 @@ struct PhotoSelectionView: View {
                 
                 PhotoView(imageState: vm.imageState)
                     .frame(width: 300, height: 400)
-                    .background(Gradient(colors: [.gray, .blue, .black]))
+                    .background(.gray)
                     .clipShape(RoundedRectangle(cornerRadius: /*@START_MENU_TOKEN@*/25.0/*@END_MENU_TOKEN@*/, style: /*@START_MENU_TOKEN@*/.continuous/*@END_MENU_TOKEN@*/))
                     .overlay(alignment: .topLeading) {
-                        PhotosPicker(selection: $vm.imageSelection, matching: .images) {
-                            ZStack {
-                                Circle()
-                                    .frame(width: 35)
-                                    .foregroundStyle(.gray)
-                                    .shadow(radius: 2)
-                                Image(systemName: vm.imageSelection == nil ? "plus.circle.fill" : "pencil.circle.fill")
-                                    .font(.system(size: 30))
-                                    .foregroundStyle(RadialGradient(gradient: Gradient(colors: [.white, .gray]), center: .center, startRadius: .zero, endRadius: 30))
-                                
+                        if vm.selectedImage == nil {
+                            // MARK: Show the PhotoPicker if there hasnt been a selection already
+                            PhotosPicker(selection: $vm.imageSelection, matching: .images) {
+                                ZStack {
+                                    Circle()
+                                        .frame(width: 35)
+                                        .foregroundStyle(.gray)
+                                        .shadow(radius: 2)
+                                    Image(systemName: vm.imageSelection == nil ? "plus.circle" : "pencil.circle")
+                                        .font(.system(size: 30))
+                                        .foregroundStyle(.white)
+                                }
+                                .offset(
+                                    x: -10,
+                                    y: -10
+                                )
                             }
-                            .offset(
-                                x: -10,
-                                y: -10
-                            )
-                            
+                        } else {
+                            Button(action: {
+                                vm.selectedImage = nil
+                            }, label: {
+                                ZStack {
+                                    Circle()
+                                        .frame(width: 35)
+                                        .foregroundStyle(.red)
+                                        .shadow(radius: 2)
+                                    Image(systemName: "x.circle")
+                                        .font(.system(size: 30))
+                                        .foregroundStyle(.white)
+                                }
+                                .offset(
+                                    x: -10,
+                                    y: -10
+                                )
+                                
+                            })
+                        }
+                        
+                    }
+                    .overlay(alignment: .topTrailing) {
+                        if vm.imageSelection == nil {
+                            Button(action: {
+                                vm.showCamera.toggle()
+                            }, label: {
+                                ZStack {
+                                    Circle()
+                                        .frame(width: 35)
+                                        .foregroundStyle(.gray)
+                                        .shadow(radius: 2)
+                                    Image(systemName: vm.imageSelection == nil ? "camera.circle" : "pencil.circle")
+                                        .font(.system(size: 30))
+                                        .foregroundStyle(.white)
+                                }
+                                .offset(
+                                    x: 10,
+                                    y: -10
+                                )
+                                
+                        })
+                        } else {
+                            Button(action: {
+                                vm.imageSelection = nil
+                            }, label: {
+                                ZStack {
+                                    Circle()
+                                        .frame(width: 35)
+                                        .foregroundStyle(.red)
+                                        .shadow(radius: 2)
+                                    Image(systemName: "x.circle")
+                                        .font(.system(size: 30))
+                                        .foregroundStyle(.white)
+                                }
+                                .offset(
+                                    x: 10,
+                                    y: -10
+                                )
+                                
+                            })
                         }
                     }
                     .overlay(alignment: .bottomTrailing) {
@@ -170,7 +232,7 @@ struct PhotoSelectionView: View {
                 Spacer()
             }
             .fullScreenCover(isPresented: $vm.showCamera) {
-                accessCameraView(selectedImage: $vm.selectedImage)
+                AccessCameraView(selectedImage: $vm.selectedImage)
             }
             .padding()
         }
@@ -179,7 +241,7 @@ struct PhotoSelectionView: View {
 
 @MainActor
 class PhotoSelectionViewModel: ObservableObject {
-    // MARK: Image Variables
+    // MARK: Image Picker Variables
     @Published var imageSelection: PhotosPickerItem? = nil {
         didSet {
             if imageSelection != nil {
@@ -192,8 +254,17 @@ class PhotoSelectionViewModel: ObservableObject {
     @Published var imageState: ImageState = .empty
     @Published var imageData: Data? = nil
     
+    // MARK: Camera Selection Variables
     @Published var showCamera = false
-    @Published var selectedImage: UIImage?
+    @Published var selectedImage: UIImage? = nil {
+        didSet {
+            if selectedImage != nil {
+                self.loadTakenPicture()
+            } else {
+                imageState = .empty
+            }
+        }
+    }
     
     // MARK: Photo Outfit Variables
     var date: Date = Date()
@@ -233,6 +304,13 @@ class PhotoSelectionViewModel: ObservableObject {
         }
     }
     
+    func loadTakenPicture() {
+        guard let selectedImage = selectedImage, let data = selectedImage.pngData() else { return }
+        
+        self.imageData = data
+        self.imageState = .success(data)
+    }
+    
     @MainActor func submit() {
         UIApplication.shared.endEditing()
         if let imageData = imageData {
@@ -259,7 +337,7 @@ enum ImageState {
     case failure(Error)
 }
 
-struct accessCameraView: UIViewControllerRepresentable {
+struct AccessCameraView: UIViewControllerRepresentable {
     
     @Binding var selectedImage: UIImage?
     @Environment(\.presentationMode) var isPresented
@@ -283,9 +361,9 @@ struct accessCameraView: UIViewControllerRepresentable {
 
 // Coordinator will help to preview the selected image in the View.
 class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-    var picker: accessCameraView
+    var picker: AccessCameraView
     
-    init(picker: accessCameraView) {
+    init(picker: AccessCameraView) {
         self.picker = picker
     }
     
