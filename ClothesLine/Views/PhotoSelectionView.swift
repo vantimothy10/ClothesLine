@@ -305,7 +305,7 @@ class PhotoSelectionViewModel: ObservableObject {
     }
     
     func loadTakenPicture() {
-        guard let selectedImage = selectedImage, let data = selectedImage.pngData() else { return }
+        guard let selectedImage = selectedImage, let data = selectedImage.jpegData(compressionQuality: 0.9) else { return }
         
         self.imageData = data
         self.imageState = .success(data)
@@ -322,10 +322,7 @@ class PhotoSelectionViewModel: ObservableObject {
         
         let fetch = FetchDescriptor<PhotoOutfit>()
         let result = try? modelContext.fetch(fetch)
-        
-        result.map({ print(String(describing: $0)) })
-        
-        
+
     }
     
 }

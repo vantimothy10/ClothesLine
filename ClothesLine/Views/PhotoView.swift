@@ -17,7 +17,7 @@ struct PhotoView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 50, height: 50)
-        case .loading(let progress):
+        case .loading( _ ):
             ProgressView()
                 .controlSize(.large)
                 .frame(width: 50, height: 50)
@@ -28,7 +28,7 @@ struct PhotoView: View {
                     .scaledToFill()
             }
             
-        case .failure(let error):
+        case .failure( _ ):
             Image(systemName: "exclamationmark.triangle")
                 .resizable()
                 .scaledToFit()

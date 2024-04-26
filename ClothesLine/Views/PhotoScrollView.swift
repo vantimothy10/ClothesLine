@@ -13,100 +13,90 @@ struct PhotoScrollView: View {
     @ObservedObject var vm: PhotoScrollViewModel
     
     var body: some View {
-            VStack {
-                
-                Divider()
-                ScrollView(.vertical) {
-                    VStack() {
-                        
-                        // MARK: Button section
-                        HStack {
-                            // MARK: Jump to bottom button
-                            if !vm.clothesLine.outfits.isEmpty {
-                                Button(action: {
-                                    vm.jumpToBottom()
-                                }, label: {
-                                    RoundedRectangle(cornerRadius: 25.0)
-                                        .foregroundStyle(.ultraThinMaterial)
-                                        .frame( height: 30)
-                                        .contentShape(RoundedRectangle(cornerRadius: 25.0))
-                                        .overlay {
-                                            Image(systemName:  "arrowshape.down")
-                                                .font(.system(size: 20))
-                                        }
-                            })
-                            }
-                            
-                            // MARK: Add new tile button
+        VStack {
+            
+            Divider()
+            ScrollView(.vertical) {
+                VStack() {
+                    
+                    // MARK: Button section
+                    HStack {
+                        // MARK: Jump to bottom button
+                        if !vm.clothesLine.outfits.isEmpty {
                             Button(action: {
-                                vm.showSheet.toggle()
+                                vm.jumpToBottom()
                             }, label: {
                                 RoundedRectangle(cornerRadius: 25.0)
                                     .foregroundStyle(.ultraThinMaterial)
                                     .frame( height: 30)
                                     .contentShape(RoundedRectangle(cornerRadius: 25.0))
                                     .overlay {
-                                        Image(systemName:  "plus.circle")
+                                        Image(systemName:  "arrowshape.down")
                                             .font(.system(size: 20))
                                     }
                             })
                         }
-                        .scrollTargetLayout()
                         
-                        // MARK: Display created tiles
-                        LazyVStack {
-                            ForEach(Array(vm.clothesLine.outfits.enumerated()), id: \.offset) { offset, outfit in
-                                VStack {
-                                    Text("\(vm.formatDate(date: outfit.date))")
-                                    PhotoTileView(outfit: outfit, longTapped: $vm.showDialog)
-                                        .contentShape(RoundedRectangle(cornerRadius: 25.0))
-                                        .confirmationDialog("Delete this outfit?", isPresented: $vm.showDialog) {
-                                            Button("Delete", role: .destructive) {
-                                                vm.deleteOutfit(outfit)
-                                            }
-                                            Button("Cancel", role: .cancel) { }
-                                        }
-
+                        // MARK: Add new tile button
+                        Button(action: {
+                            vm.showSheet.toggle()
+                        }, label: {
+                            RoundedRectangle(cornerRadius: 25.0)
+                                .foregroundStyle(.ultraThinMaterial)
+                                .frame( height: 30)
+                                .contentShape(RoundedRectangle(cornerRadius: 25.0))
+                                .overlay {
+                                    Image(systemName:  "plus.circle")
+                                        .font(.system(size: 20))
                                 }
+                        })
+                    }
+                    .scrollTargetLayout()
+                    
+                    // MARK: Display created tiles
+                    LazyVStack(spacing: 1) {
+                        ForEach(Array(vm.sortedOutfits.enumerated()), id: \.offset) { offset, outfit in
+                            PhotoTileView(outfit: outfit, parentId: vm.clothesLine.id, refreshParent: $vm.shouldRefresh)
                                 .scrollTransition { content, phase in
                                     content
                                         .opacity(phase.isIdentity ? 1 : 0.4)
                                         .scaleEffect(phase.isIdentity ? 1 : 0.75)
                                 }
-                            }
-                        }
-                        .scrollTargetLayout()
-                    
-                        // MARK: Jump to top button
-                        if !vm.clothesLine.outfits.isEmpty {
-                            Button(action: {
-                                vm.jumpToTop()
-                            }, label: {
-                                RoundedRectangle(cornerRadius: 25.0)
-                                    .foregroundStyle(.ultraThinMaterial)
-                                    .frame(width: 300, height: 30)
-                                    .contentShape(RoundedRectangle(cornerRadius: 25.0))
-                                    .overlay {
-                                        Image(systemName:  "arrowshape.up")
-                                            .font(.system(size: 20))
-                                    }
-                        })
                         }
                     }
-                }
-                .scrollPosition(id: $vm.scrollPosition, anchor: .center)
-                .scrollTargetBehavior(.viewAligned)
-                .onAppear{
+                    .padding()
+                    .scrollTargetLayout()
                     
+                    // MARK: Jump to top button
+                    if !vm.clothesLine.outfits.isEmpty {
+                        Button(action: {
+                            vm.jumpToTop()
+                        }, label: {
+                            RoundedRectangle(cornerRadius: 25.0)
+                                .foregroundStyle(.ultraThinMaterial)
+                                .frame(width: 300, height: 30)
+                                .contentShape(RoundedRectangle(cornerRadius: 25.0))
+                                .overlay {
+                                    Image(systemName:  "arrowshape.up")
+                                        .font(.system(size: 20))
+                                }
+                        })
+                    }
                 }
-                
             }
-            .navigationTitle("\(vm.clothesLine.name)")
-            .sheet(isPresented: $vm.showSheet, content: {
-                PhotoSelectionView(vm: PhotoSelectionViewModel(currentClothesline: vm.clothesLine, modelContext: modelContext))
-            })
+            .scrollPosition(id: $vm.scrollPosition, anchor: .center)
+            .onAppear{
+                
+                vm.sortOutfits()
+            }
+            
         }
-        
+        .navigationTitle("\(vm.clothesLine.name)")
+        .sheet(isPresented: $vm.showSheet, content: {
+            PhotoSelectionView(vm: PhotoSelectionViewModel(currentClothesline: vm.clothesLine, modelContext: modelContext))
+        })
+    }
+    
     
 }
 
@@ -114,52 +104,47 @@ struct PhotoScrollView: View {
 @MainActor
 class PhotoScrollViewModel: ObservableObject {
     @Published var showSheet = false
-    @Published var showDelete = false
     @Published var selectedOutfit: PhotoOutfit? = nil
     @Published var scrollPosition: Int? = nil
-    @Published var clothesLine: ClothesLine
-    @Published var isLongPressed = false
-    @Published var showDialog = false
+    var clothesLine: ClothesLine
+    @Published var sortedOutfits: [PhotoOutfit] = []
     var searchString: String = ""
+    
+    @Published var shouldRefresh = false {
+        didSet {
+            if shouldRefresh {
+                self.fetchClothesLine()
+                shouldRefresh = false
+            }
+        }
+    }
     
     private let modelContext: ModelContext
     
-    private let dateFormatter = DateFormatter()
     
     init(clothesLine: ClothesLine, modelContext: ModelContext) {
-        
-        dateFormatter.dateStyle = .medium
-        dateFormatter.timeStyle = .none
         self.clothesLine = clothesLine
         self.modelContext = modelContext
+        self.sortOutfits()
     }
     
-    func refreshClothesLine() {
+    func fetchClothesLine() {
         let id = clothesLine.id
         let fetchDescriptor = FetchDescriptor<ClothesLine>(predicate: #Predicate { $0.id == id })
-        guard let foundClothesLine = try? modelContext.fetch(fetchDescriptor).first else {
-            return
+        do {
+            let result = try modelContext.fetch(fetchDescriptor)
+            if (result.first != nil) {
+                clothesLine = result.first!
+                self.sortOutfits()
+            }
+        } catch let error {
+            print("Error fetching ClothesLine - \(error)")
         }
-        clothesLine = foundClothesLine
-        sortClothesLines()
     }
     
-    func sortClothesLines() {
-        clothesLine.outfits = clothesLine.outfits.sorted(by: { $0.date.timeIntervalSince1970 < $1.date.timeIntervalSince1970 })
-    }
-    
-    func formatDate(date: Date) -> String {
-        return dateFormatter.string(from: date)
+    func sortOutfits() {
+        sortedOutfits = clothesLine.outfits.sorted(by: { $0.date > $1.date})
         
-    }
-    
-    func deleteSelectedOutfit() {
-        guard let outfit = selectedOutfit else { return }
-        
-        DispatchQueue.main.async {
-            self.modelContext.delete(outfit)
-            try? self.modelContext.save()
-        }
     }
     
     func jumpToBottom() {
@@ -176,19 +161,6 @@ class PhotoScrollViewModel: ObservableObject {
         }
     }
     
-    func deleteOutfit(_ outfit: PhotoOutfit) {
-        let model = self.clothesLine.persistentBackingData
-        let filtered = self.clothesLine.outfits.filter({ $0.id != outfit.id })
-        
-        DispatchQueue.main.async {
-            // Remove deleted outfit from ClothesLine object
-            model.setValue(forKey: \.outfits, to: filtered)
-            self.modelContext.delete(outfit)
-            try? self.modelContext.save()
-            
-        }
-    }
-    
 }
 
 #Preview {
@@ -201,7 +173,7 @@ class PhotoScrollViewModel: ObservableObject {
         PhotoOutfit(imageData: (UIImage(named: "sample.timmy.fit.3")?.pngData())!, date: Date.now.addingTimeInterval(86400 * 10), liked: true)
     ]
     let sampleClothesLine = ClothesLine(name: "Main Clothesline", desc: "This is your main clothesline", outfits: sampleOutfits)
-
+    
     
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: ClothesLine.self, configurations: config)

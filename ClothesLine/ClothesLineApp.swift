@@ -28,14 +28,14 @@ struct ClothesLineApp: App {
     
     init() {
         guard let existingClothesLines = try? sharedModelContainer.mainContext.fetch(FetchDescriptor<ClothesLine>()) else {
-            var mainClothesLine = ClothesLine(name: "Main Clothesline", desc: "Your main clothesline", outfits: [])
+            let mainClothesLine = ClothesLine(name: "Main Clothesline", desc: "Your main clothesline", outfits: [])
             clothesLine = mainClothesLine
             return
         }
         print("Found \(existingClothesLines.count) existing ClothesLines")
         
         if existingClothesLines.isEmpty {
-            var mainClothesLine = ClothesLine(name: "Main Clothesline", desc: "Your main clothesline", outfits: [])
+            let mainClothesLine = ClothesLine(name: "Main Clothesline", desc: "Your main clothesline", outfits: [])
             sharedModelContainer.mainContext.insert(mainClothesLine)
             try? sharedModelContainer.mainContext.save()
             clothesLine = mainClothesLine
